@@ -20,11 +20,16 @@ const getReview = async (id) => {
 
 const createReview = async (review) => {
   try {
+    const bookmark = await db.oneOrNone(`SELECT * FROM bookmarks WHERE id=${review.bookmark_id}`);
+    if (!bookmark) {
+      return { error: "Bookmark not found" };
+    }
+    
     const newReview = await db.one(
       `INSERT INTO
         reviews(bookmark_id, reviewer, title, content, rating)
        VALUES
-        ($1, $2, $3, $4)
+        ($1, $2, $3, $4, $5)
        RETURNING *;`,
       [
         review.bookmark_id,
@@ -41,7 +46,6 @@ const createReview = async (review) => {
 };
 
 const deleteReview = async (id) => {
-  //bookmarks/id
   try {
     const deletedReview = await db.one(
       "DELETE FROM reviews WHERE id=$1 RETURNING *",
@@ -54,8 +58,14 @@ const deleteReview = async (id) => {
 };
 
 const updateReview = async (id, review) => {
-  // bookmarks/id
   try {
+    if (review.bookmark_id) {
+      const bookmark = await db.oneOrNone(`SELECT * FROM bookmarks WHERE id=${review.bookmark_id}`);
+      if (!bookmark) {
+        return { error: "New bookmark not found" };
+      }
+    }
+
     const updatedReview = await db.one(
       `UPDATE reviews SET bookmark_id=$1, reviewer=$2, title=$3, content=$4, rating=$5 WHERE id=$6 RETURNING *`,
       [
